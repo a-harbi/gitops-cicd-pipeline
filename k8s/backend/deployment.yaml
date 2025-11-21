@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: apps
+  labels:
+    app: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: 192.168.49.3:5002/backend:62f002b4
+        env:
+        - name: BACKEND_MESSAGE
+          value: "Hello from backend in Kubernetes!"
+        - name: DATABASE_HOST
+          value: db
+        ports:
+        - containerPort: 5000

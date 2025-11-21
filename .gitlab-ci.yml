@@ -1,0 +1,123 @@
+# NOTE: This pipeline is configured for a local lab environment
+# For production use:
+# - Use HTTPS for registry
+# - Store credentials in CI/CD variables
+# - Use proper DNS names instead of IP addresses
+
+stages:
+  - build-and-push
+  - update-manifests
+
+variables:
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+  REGISTRY_URL: "nexus:5000"
+  GIT_STRATEGY: clone
+  FRONTEND_IMAGE: "${REGISTRY_URL}/frontend"
+  BACKEND_IMAGE: "${REGISTRY_URL}/backend"
+  DB_IMAGE: "${REGISTRY_URL}/database"
+
+backend_build_and_push:
+  stage: build-and-push
+  tags: [docker, minikube]
+  image: docker:20.10.16
+  services:
+    - name: docker:20.10.16-dind
+      command:
+        - "--insecure-registry=nexus:5000"
+  script: |
+    echo "Waiting for Docker daemon..."
+    for i in {1..30}; do docker info >/dev/null 2>&1 && break; sleep 2; done
+    echo "Logging in to Nexus registry at nexus:5000..."
+    docker login  nexus:5000 -u "${NEXUS_USER}" -p "${NEXUS_PASSWORD}"
+    IMAGE_TAG="${BACKEND_IMAGE}:${CI_COMMIT_SHORT_SHA}"
+    echo "Using image tag: ${IMAGE_TAG}"
+    docker build -t "${IMAGE_TAG}" backend
+    docker images
+    docker push "${IMAGE_TAG}"
+  only:
+    - main
+
+frontend_build_and_push:
+  stage: build-and-push
+  needs: [backend_build_and_push]
+  tags: [docker, minikube]
+  image: docker:20.10.16
+  services:
+    - name: docker:20.10.16-dind
+      command:
+        - "--insecure-registry=nexus:5000"
+  script: |
+    echo "Waiting for Docker daemon..."
+    for i in {1..30}; do docker info >/dev/null 2>&1 && break; sleep 2; done
+    echo "Logging in to Nexus registry at nexus:5000..."
+    docker login nexus:5000 -u "${NEXUS_USER}" -p "${NEXUS_PASSWORD}"
+    IMAGE_TAG="${FRONTEND_IMAGE}:${CI_COMMIT_SHORT_SHA}"
+    echo "Using image tag: ${IMAGE_TAG}"
+    docker build -t "${IMAGE_TAG}" frontend
+    echo "Images present in daemon:"
+    docker images
+    docker push "${IMAGE_TAG}"
+  only:
+    - main
+
+database_build_and_push:
+  stage: build-and-push
+  needs: [frontend_build_and_push]
+  tags: [docker, minikube]
+  image: docker:20.10.16
+  services:
+    - name: docker:20.10.16-dind
+      command:
+        - "--insecure-registry=nexus:5000"
+  script: |
+    echo "Waiting for Docker daemon..."
+    for i in {1..30}; do docker info >/dev/null 2>&1 && break; sleep 2; done
+    echo "Logging in to Nexus registry at nexus:5000..."
+    docker login nexus:5000 -u "${NEXUS_USER}" -p "${NEXUS_PASSWORD}"
+    IMAGE_TAG="${REGISTRY_URL}/database:${CI_COMMIT_SHORT_SHA}"
+    echo "Using image tag: ${IMAGE_TAG}"
+    docker build -t db-temp database
+    docker tag db-temp "${IMAGE_TAG}"
+    echo "Images present in daemon (filtered):"
+    docker images | grep database || true
+    echo "Pushing image: ${IMAGE_TAG}"
+    docker push "${IMAGE_TAG}"
+  only:
+    - main
+
+update_manifests:
+  stage: update-manifests
+  tags: [docker, minikube]
+  image: alpine:3.18
+  before_script:
+    - apk add --no-cache git sed
+  script: |
+    set -e
+    git config --global user.name "${GIT_PUSH_USER}"
+    git config --global user.email "gitlab-bot@example.com"
+    git remote set-url origin "https://${GIT_PUSH_USER}:${GIT_PUSH_TOKEN}@gitlab.com/YOUR_USERNAME/YOUR_REPO.git"
+
+    echo "Updating frontend image..."
+    sed -i "s#^\(\s*image:\s*\).*#\1${FRONTEND_IMAGE}:${CI_COMMIT_SHORT_SHA}#" k8s/frontend/deployment.yaml
+
+    echo "Updating backend image..."
+    sed -i "s#^\(\s*image:\s*\).*#\1${BACKEND_IMAGE}:${CI_COMMIT_SHORT_SHA}#" k8s/backend/deployment.yaml
+
+    echo "Updating database image..."
+    sed -i "s#^\(\s*image:\s*\).*#\1${DB_IMAGE}:${CI_COMMIT_SHORT_SHA}#" k8s/database/deployment.yaml
+
+    git status
+    git diff
+    git add \
+      k8s/frontend/deployment.yaml \
+      k8s/backend/deployment.yaml \
+      k8s/database/deployment.yaml
+    git commit -m "CI: update images to ${CI_COMMIT_SHORT_SHA}" || echo "No changes to commit"
+    git push origin HEAD:main
+  only:
+    - main
+  needs:
+    - backend_build_and_push
+    - frontend_build_and_push
+    - database_build_and_push
