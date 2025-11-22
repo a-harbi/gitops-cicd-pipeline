@@ -1,93 +1,253 @@
-# application-images
+# GitOps CI/CD Pipeline - Monorepo Demo
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=flat&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 
+A complete **GitOps implementation** demonstrating automated deployment of a multi-service application using modern DevOps tools and practices.
 
-## Getting started
+## 🎯 Project Overview
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+This project showcases a production-ready CI/CD pipeline that:
+- Automatically builds Docker images on every commit
+- Pushes images to a private registry (Nexus)
+- Updates Kubernetes manifests with new image tags
+- Uses Argo CD to sync deployments to a Kubernetes cluster
+- Implements GitOps principles (Git as single source of truth)
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
+##  Architecture
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/Abdulrahman-tsm/application-images.git
-git branch -M main
-git push -uf origin main
+Developer Push to Git
+        ↓
+   GitLab CI/CD
+        ↓
+  Docker Image Build
+        ↓
+  Push to Nexus Registry
+        ↓
+  Update K8s Manifests in Git
+        ↓
+   Argo CD Detects Change
+        ↓
+  Sync to Kubernetes Cluster
+        ↓
+   Rolling Update (Zero Downtime)
 ```
 
-## Integrate with your tools
+##  Application Components
 
-- [ ] [Set up project integrations](https://gitlab.com/Abdulrahman-tsm/application-images/-/settings/integrations)
+### Frontend
+- **Technology**: Nginx web server
+- **Port**: 80
+- **Replicas**: 2
+- **Service Type**: NodePort (for external access)
 
-## Collaborate with your team
+### Backend  
+- **Technology**: Python Flask REST API
+- **Port**: 5000
+- **Replicas**: 2
+- **Endpoints**:
+  - `GET /` - Health check
+  - `GET /api/data` - Returns JSON data
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+### Database
+- **Technology**: MySQL 8.0
+- **Port**: 3306
+- **Replicas**: 1
+- **Initialization**: Custom SQL script on startup
 
-## Test and Deploy
+##  Technologies & Tools
 
-Use the built-in continuous integration in GitLab.
+| Category | Tools |
+|----------|-------|
+| **CI/CD** | GitLab CI/CD |
+| **Container Registry** | Nexus Repository OSS |
+| **Orchestration** | Kubernetes (Minikube for local) |
+| **GitOps** | Argo CD |
+| **Containerization** | Docker |
+| **Configuration Management** | Kustomize |
+| **Version Control** | Git |
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+##  Project Structure
+```
+application-images/
+├── .gitlab-ci.yml              # CI/CD pipeline definition
+│
+├── frontend/                   # Frontend application
+│   ├── Dockerfile             # Nginx container image
+│   └── index.html             # Static web content
+│
+├── backend/                    # Backend API
+│   ├── Dockerfile             # Flask container image
+│   └── app.py                 # REST API application
+│
+├── database/                   # Database
+│   ├── Dockerfile             # MySQL container image
+│   └── init.sql               # Database initialization script
+│
+└── k8s/                        # Kubernetes manifests
+    ├── kustomization.yaml     # Root Kustomize configuration
+    │
+    ├── frontend/
+    │   ├── kustomization.yaml
+    │   ├── deployment.yaml    # Frontend deployment (2 replicas)
+    │   └── service.yaml       # NodePort service
+    │
+    ├── backend/
+    │   ├── kustomization.yaml
+    │   ├── deployment.yaml    # Backend deployment (2 replicas)
+    │   └── service.yaml       # ClusterIP service
+    │
+    └── database/
+        ├── kustomization.yaml
+        ├── deployment.yaml    # Database deployment (1 replica)
+        └── service.yaml       # ClusterIP service
+```
 
-***
+##  Getting Started
 
-# Editing this README
+### Prerequisites
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+Before running this project, ensure you have:
 
-## Suggestions for a good README
+- **Minikube** - Local Kubernetes cluster
+- **kubectl** - Kubernetes command-line tool
+- **Docker** - Container runtime
+- **GitLab** account (or GitLab self-hosted)
+- **Nexus Repository** - Container registry
+- **Argo CD** - GitOps deployment tool
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
 
-## Name
-Choose a self-explaining name for your project.
+#### 3. Configure GitLab CI/CD
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+Set these variables in GitLab (Settings → CI/CD → Variables):
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+| Variable | Description | Masked |
+|----------|-------------|--------|
+| `GIT_PUSH_USER` | Your GitLab username | No |
+| `GIT_PUSH_TOKEN` | Personal Access Token | Yes |
+| `REGISTRY_URL` | Nexus registry address | No |
+| `NEXUS_USER` | Nexus username | No |
+| `NEXUS_PASSWORD` | Nexus password | Yes |
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+#### 4. Install Argo CD
+```bash
+# Create namespace
+kubectl create namespace argocd
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+# Install Argo CD
+kubectl apply -n argocd \
+  -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+# Get admin password
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath="{.data.password}" | base64 -d
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+# Port-forward to access UI
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+#### 5. Configure Argo CD Application
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+1. Access Argo CD UI: https://localhost:8080
+2. Login with username `admin` and retrieved password
+3. Add your Git repository
+4. Create application:
+   - **Name**: app-monorepo
+   - **Project**: default
+   - **Repo URL**: Your GitLab repository
+   - **Path**: k8s/
+   - **Cluster**: https://kubernetes.default.svc
+   - **Namespace**: apps
+5. Click **SYNC** to deploy
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+##  CI/CD Pipeline
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+The pipeline consists of two stages:
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+### Stage 1: Build and Push
+Three parallel jobs build Docker images:
+- `backend_build_and_push` - Builds backend image
+- `frontend_build_and_push` - Builds frontend image  
+- `database_build_and_push` - Builds database image
 
-## License
-For open source projects, say how it is licensed.
+Each job:
+1. Builds Docker image
+2. Tags with Git commit SHA
+3. Pushes to Nexus registry
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+### Stage 2: Update Manifests
+- Updates Kubernetes deployment YAMLs with new image tags
+- Commits changes back to Git repository
+- Triggers Argo CD sync
+
+##  GitOps Workflow
+
+1. Developer pushes code to Git
+2. GitLab CI/CD pipeline triggers
+3. Images built and pushed to Nexus
+4. Manifests updated with new image tags
+5. Changes committed to Git
+6. Argo CD detects drift
+7. Argo CD syncs cluster state
+8. Kubernetes performs rolling update
+9. Application updated with zero downtime 
+
+##  Learning Outcomes
+
+This project demonstrates:
+
+- ✅ **Monorepo structure** for microservices
+- ✅ **Continuous Integration/Deployment**
+- ✅ **GitOps principles** and methodology
+- ✅ **Container orchestration** with Kubernetes
+- ✅ **Infrastructure as Code** practices
+- ✅ **Automated testing** and deployment
+- ✅ **Service mesh** architecture basics
+- ✅ **Rolling updates** for zero-downtime deployments
+
+## 🐛 Troubleshooting
+
+### ImagePullBackOff Error
+
+If pods can't pull images:
+```bash
+# Restart Minikube with insecure registry
+minikube stop
+minikube delete --purge=true
+minikube start --driver=docker --insecure-registry="<NEXUS_IP>:5002"
+
+# Verify configuration
+minikube ssh
+docker info | grep -A3 'Insecure Registries'
+exit
+
+# Delete pods to recreate
+kubectl delete pods --all -n apps
+```
+
+### Pipeline Fails to Push Images
+
+Check Nexus user has proper permissions:
+- Role: nx-admin or custom role with docker push privileges
+
+
+##  Future Enhancements
+
+Potential improvements:
+
+- [ ] Add automated testing (unit tests, integration tests)
+- [ ] Implement health checks and readiness probes
+- [ ] Add Horizontal Pod Autoscaling (HPA)
+- [ ] Implement service mesh (Istio/Linkerd)
+- [ ] Add monitoring and alerting
+- [ ] Implement blue-green or canary deployments
+- [ ] Add persistent volumes for database
+- [ ] Implement backup and disaster recovery
+- [ ] Add multi-cluster deployment
+- [ ] Implement progressive delivery with Argo Rollouts
+
+
+##  Author
+
+**Abdulrahman Alharbi**
